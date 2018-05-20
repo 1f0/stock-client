@@ -1,0 +1,21 @@
+#inPic {
+    color: white;
+}
+#stockPicPanel {
+    margin: 2em;
+}
+#stockSearchPanel {
+    margin: 2em;
+}
+#stockSearchDiv {
+    padding-bottom: 1em;
+    padding-top: 1em;
+}
+#stockSearchBox {
+    background: none !important;
+    border: 1px solid rgb(6, 217, 149) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+}
+
+/*rgb(6, 217, 149)*/

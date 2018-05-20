@@ -1,0 +1,9 @@
+.loginContainer{
+  background: url(../images/bg.jpg)no-repeat;
+  background-size:cover;
+  -webkit-background-size:cover;
+  -moz-background-size:cover;
+  -o-background-size:cover;
+  -ms-background-size:cover;
+  min-height:979px;
+}

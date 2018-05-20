@@ -1,0 +1,1356 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>Super Stock v1.0</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<script type="application/x-javascript">
+		addEventListener("load", function() {
+			setTimeout(hideURLbar, 0);
+		}, false);
+		function hideURLbar() {
+			window.scrollTo(0, 1);
+		}
+	</script>
+	<!-- Bootstrap Core CSS -->
+	<link href="css/bootstrap.min.css" rel='stylesheet' type='text/css' />
+	<!-- Custom CSS -->
+	<link href="css/style.css" rel='stylesheet' type='text/css' />
+	<!-- Graph CSS -->
+	<link href="css/lines.css" rel='stylesheet' type='text/css' />
+	<link href="css/font-awesome.css" rel="stylesheet" />
+	<!-- Webfonts -->
+	<link href='css/font.css' rel='stylesheet' type='text/css' />
+	<!-- Nav CSS -->
+	<link href="css/custom.css" rel="stylesheet" />
+	<!-- Extra CSS -->
+	<link href="css/aaa.css" rel='stylesheet' type='text/css' />
+	<link href="css/bbb.css" rel='stylesheet' type='text/css' />
+	<link href="css/ccc.css" rel='stylesheet' type='text/css' />
+	<!-- JQuery -->
+	<script src="js/jquery.min.js"></script>
+	<!-- Fancy JavaScript -->
+	<script src="js/metisMenu.min.js"></script>
+	<script src="js/custom.js"></script>
+	<!-- Bootstrap Core JavaScript -->
+	<script src="js/bootstrap.min.js"></script>
+	<!-- React JavaScript -->
+	<script src="js/react/react.js"></script>	
+	<script src="js/react/react-dom.min.js"></script>
+	<script src="js/react/browser.min.js"></script>
+</head>
+
+<body>
+	<div id="content">
+	</div>
+
+	<script type="text/babel">
+		'usestrict';
+		const url_login     = 'http://10.214.0.195:9001/stock/login';
+		const url_logout    = 'http://10.214.0.195:9001/stock/logout';
+		const url_check_stk = 'http://10.214.0.195:9001/stock/check';
+		const url_query_stk = 'http://10.214.0.195:9001/stock/query';
+		const url_mod_stkpw = 'http://10.214.0.195:9001/stock/modify';
+		const url_account   = 'http://10.214.0.195:9001/stock/account';
+		
+		const url_check_cap = 'http://superstock.ml:8080/polls/stock/query';
+		const url_mod_cappw = 'http://superstock.ml:8080/polls/capital/modify';
+		
+		const url_buy  = 'http://superstock.ml:8080/polls/center/buy';
+		const url_sell = 'http://superstock.ml:8080/polls/center/sell';
+		
+		const url_undo_buy  = 'http://superstock.ml:8080/polls/center/undo/buy';
+		const url_undo_sell = 'http://superstock.ml:8080/polls/center/undo/sell';
+		const query_ord_id  = 'http://superstock.ml:8080/polls/center/order/id';
+		
+		const url_info_stk = 'http://manji.applinzi.com/index.php/Home/Index/baseinfo';
+		const url_note     = 'http://manji.applinzi.com/index.php/Home/Index/note';
+		
+		// resusable code
+		var GlobalMixin = {
+			checkInput: function(input,name){
+				if(input.length<6)
+					return name + ' is too short!';
+				else if(input.length>50)
+					return name + ' is too long!';
+				var regx = /[\w\d]+/g;
+				if(regx.test(input))
+					return '';
+				return name + ' is illegal. ';
+			},
+			checkCardID: function(input,name){
+				if(input.length<6)
+					return name + ' is too short!';
+				else if(input.length>50)
+					return name + ' is too long!';
+				var regx = /[\w\d]+/g;
+				if(regx.test(input))
+					return '';
+				return name + ' is illegal. ';
+			},
+			checkPassword: function(input,name){
+				if(input.length<6)
+					return name + ' is too short!';
+				else if(input.length>50)
+					return name + ' is too long!';
+				var regx = /[\w\d]+/g;
+				if(regx.test(input))
+					return '';
+				return name + ' is illegal. ';
+			},
+			checkStkCode: function(input){
+				return true;
+				var regx=/^\d{5}$/;
+				return regx.test(input);
+			},
+			checkPrice: function(input){
+				var regx=/^[1-9]\d*(.\d*[1-9])?$/
+				return regx.test(input);
+			},
+			checkAmount: function(input){
+				var regx=/^[1-9]\d*$/
+				return regx.test(input);
+			}
+		};
+
+		// login
+		var LoginPanel = React.createClass({
+			mixins: [ GlobalMixin ],
+			getInitialState: function() {
+				return {
+					usrName: '',
+					pw: '',
+					tip: '',
+					loginSuc: false
+				};
+			},
+			loginClick:function(){
+				var url = url_login;
+				//var url = this.urlHeader+'stock/login';
+				var reason1 = this.checkInput(this.state.usrName,'Card Number');
+				var reason2 = this.checkInput(this.state.pw,'Password');
+				if(reason1===''&&reason2===''){
+					var data = {account:this.state.usrName,password:this.state.pw};
+					var that = this;
+					$.post(url,data).done(
+						function(res){
+							//var res = JSON.parse(result);
+							if(that.isMounted()){
+								if(res.state==='ok'){
+									that.props.signIn(res['token'],that.state.usrName);
+								}else{
+									that.setState({tip:res['info']});
+								}
+							}
+						}
+					);
+				}else{
+					this.setState({tip:reason1+' '+reason2});
+				}
+			},
+			handleKeyDown:function(event){
+				if(event.keyCode==13)
+					this.loginClick();
+			},
+			handleNameChange:function(event){
+				this.setState({usrName: event.target.value});
+			},
+			handlePWChange:function(event){
+				this.setState({pw: event.target.value});
+			},
+			handleFocus:function(){
+				this.setState({tip:''});
+			},
+			render: function(){
+				return(
+						<div className="loginContainer">
+							<div className="login-logo">
+								<img src="images/logo.png" alt=""/>
+							</div>
+							<h2 className="form-heading">login</h2>
+							<div className="app-cam">
+								<form>
+									<input id='username' type="text" className="text" value={this.state.usrName} placeholder='Card Number' onChange={this.handleNameChange} onFocus={this.handleFocus}/>
+									<input id='password' type="password" value={this.state.pw} placeholder='Password' onChange={this.handlePWChange} onKeyDown={this.handleKeyDown} onFocus={this.handleFocus}/>
+									<input type="button" onClick={this.loginClick} value="Login" />
+								</form>
+								<p style={{color:'red', fontFamily:'Arial', fontWeight:'bold'}}>{this.state.tip}</p>
+							</div>
+						</div>
+				);
+			}
+		});
+
+		// checking owning
+		var AccPollingComponent = React.createClass({
+			poll: function() {
+				if (!this.isMounted()) {
+					return;
+				}
+				var self = this;
+				$.post(this.props.source, {token: this.props.token}).done( 
+					function(result) {
+						if (self.isMounted()) {
+							self.setState({
+								data: result
+							});
+						}
+					}
+				)
+			},
+
+			getInitialState: function() {
+				return {
+					data: null
+				};
+			},
+
+			componentDidMount: function() {
+				var self = this;
+
+				setTimeout(function() {
+					self.poll();
+
+					if (!self.isMounted()) {
+						return;
+					}
+
+					self._timer = setInterval(self.poll, 5000);
+				}, 1);
+			},
+
+			componentWillUnmount: function() {
+				clearInterval(this._timer);	
+			},
+
+			shouldComponentUpdate: function(nextProps, nextState) {
+				if (this.state.data !== nextState.data) {
+					return true;
+				}
+				return false;
+			},
+
+			renderContents: function() {
+
+				if (this.state.data === null) {
+					return ( <div>No data</div> );
+				}
+
+				//var resObj = JSON.parse(this.state.data);
+				var resObj = this.state.data;
+				
+				var type = this.props.name;
+				
+				if ((resObj["state"] === 'ok') && (type === 'capital')) {
+					return (
+						<ul className="list-unstyled">
+							<li>Frozen: {resObj.frozen}</li>
+							<li>Free: {resObj.unfrozen}</li>	
+						</ul>
+					); 
+				} 
+				else if((resObj["state"] === 'ok') && (type === 'stock')) {
+					return (
+						<ul className="list-unstyled">
+							<li>
+								<div className="activity-row1" style={{color:'#ff4136'}}>
+									<div className="col-xs-3">Code</div>
+									<div className="col-xs-3">Name</div>
+									<div className="col-xs-3">Amount</div>
+									<div className="clearfix"></div>
+								</div>
+							</li>
+							{
+								resObj.stock.map(function (obj,i) {
+									return (
+										<li>
+										<div className="activity-row1" key={"myrow"+i}>
+											<div className="col-xs-3">{obj.code}</div>
+											<div className="col-xs-3">{obj.name}</div>
+											<div className="col-xs-3">{obj.amount}</div>
+											<div className="clearfix"></div>
+										</div>
+										</li>		
+									);
+								})
+							}
+						</ul>
+					); 
+				}
+				else if (resObj["state"] === 'error'){
+					return (
+						<div className="wid_blog-desc">
+							<div className="wid_blog-right">
+								<p>{resObj.info}</p>
+							</div>
+						</div>
+						);
+					}
+			},
+
+			render: function() {
+				return (
+					<div>
+						{
+							this.renderContents()
+						}
+					</div>
+				)
+			}
+		});
+
+		var CheckPossesion = React.createClass({
+			mixins: [ GlobalMixin ],
+			render: function(){
+				return (
+					<div>
+						<div className="col-md-4 stats-info" style={{margin:"1em 1em 1em 1em"}}>
+							<div className="panel-heading">
+								<h4 className="panel-title"><i className="fa fa-rmb textinfo icon_11"/> Capital</h4>
+							</div>
+							<div className="panel-body">
+								<AccPollingComponent token={this.props.token} name="capital" source={url_check_cap} />
+							</div>
+						</div>
+						<div className="col-md-4 stats-info" style={{margin:"1em 1em 1em 1em"}}>
+				        <div className="myscrollbar" id="style-2">
+				        	<div className="panel-heading">
+								<h4 className="panel-title"><i className="fa fa-star textinfo icon_11"/> Stock</h4>
+							</div>
+							<div className="panel-body">
+				        		<AccPollingComponent token={this.props.token} name="stock" source={url_query_stk} />
+				        	</div>
+			  		    </div>
+			  		    </div>
+					</div>
+					
+				);
+			}
+		
+		});
+		
+		// End checking
+
+		// Notification frame
+		var PollingComponent = React.createClass({
+
+			startPolling: function() {
+				var self = this;
+
+				setTimeout(function() {
+					self.poll();
+
+					if (!self.isMounted()) {
+						return;
+					}
+
+					self._timer = setInterval(self.poll, 10000);
+				}, 1);
+			},
+
+			poll: function() {
+				if (!this.isMounted()) {
+					return;
+				}
+
+				var self = this;
+				$.post(this.props.source,{}, function(result) {
+					if (self.isMounted()) {
+						self.setState({
+							data: result
+						});
+					}
+				})
+			},
+
+			getInitialState: function() {
+				return {
+					data: null
+				}
+			},
+
+			componentDidMount: function() {
+				this.startPolling();
+			},
+
+			componentWillUnmount: function() {
+				clearInterval(this._timer);
+			},
+
+			shouldComponentUpdate: function(nextProps, nextState) {
+				if (this.state.data !== nextState.data) {
+					return true;
+				}
+				return false;
+			},
+
+			renderContents: function() {
+
+				if (this.state.data === null) {
+					return ( <div>No data</div> );
+				}
+
+				//var resObj = JSON.parse(this.state.data);
+				var resObj = this.state.data;
+				var paddingStyle = {
+					padding:"1em"
+				};
+
+				if (resObj["state"] === 'ok') {
+					return (
+							<div id='resObjStateOK'>
+							{
+								resObj.info.map(function (obj,i) {
+									return (
+										<div className="col-md-4 widget_1_box2" key={i+'MagicNotify1'}>
+											<div className="wid_blog" style={paddingStyle}>
+												<h3>{obj.title}</h3>
+											</div>
+											<div className="wid_blog-desc" style={{'margin-bottom':"8px"}}>
+												<div className="wid_blog-right">
+													<p>{obj.content}</p>
+												</div>
+											</div>
+										</div>
+										);
+								})
+							}
+							</div>
+					); 
+				} else if (resObj["state"] === 'error'){
+					return (
+							<div className="wid_blog-desc">
+								<div className="wid_blog-right">
+									<p>{resObj.info}</p>
+								</div>
+							</div>
+							);
+				}
+			},
+
+			render: function() {
+				return (
+					<div>{this.renderContents()}</div>
+				);
+			}
+		});
+		// END Notification
+
+		// start lookup
+		var StockRow = React.createClass({
+			render: function(){
+				return (
+					<li>{this.props.attr}: {this.props.value}</li>
+				);
+			}
+		});
+
+		var OneStock = React.createClass({
+
+			render:function(){
+
+				var stock = this.props.stockInfo;
+				var items = [];
+				var itemCount = 1;
+				for (var key in stock){
+					items.push(<StockRow attr={key} value={stock[key]} key={this.props.i * 12 + itemCount} />);
+					itemCount++;
+				}
+
+				return (
+					<ul className="list-unstyled" key={this.props.i}>
+						{items}
+					</ul>
+				);
+			}
+
+		});
+
+		var SearchPanel = React.createClass({
+			render:function(){
+				if(this.props.data === null){
+					return (<div className="panel-body panel-body2"> </div>);
+				}
+				//var parsedObj = JSON.parse(this.props.data);
+				var parsedObj = this.props.data;
+				if(parsedObj.state==='ok' && parsedObj.info.length > 0){
+					var stockCount = 0;
+					return (
+							<div className="panel-body panel-body2">
+							{
+								parsedObj.info.map(function(stock) {
+								stockCount++;
+								return (<OneStock stockInfo={stock} i={stockCount} key={stockCount} />);
+								})
+							}
+							</div>
+						
+					);
+				}else if(parsedObj.state==='ok' && parsedObj.info.length === 0){
+					return (
+						<div className="panel-body panel-body2">
+							<ul className="list-unstyled" key={this.props.i}>
+								<li>No such code</li>
+							</ul>
+						</div>
+					);
+				}
+				else if(parsedObj.state==='error'){
+					return (
+						<div className="panel-body panel-body2">
+							<ul className="list-unstyled" key={this.props.i}>
+								<li>{parsedObj.info}</li>
+							</ul>
+						</div>
+					);
+				}
+
+			}
+		})
+
+		var SearchBar = React.createClass({
+			mixins:[ GlobalMixin ],
+			handleChange: function(){
+				// using uncontrolled mode, this function is abandonned
+				//this.props.onUserInput(this.refs.searchCodeInput.value);
+			},
+
+			handlePress: function(event){
+				var input = this.refs.searchCodeInput.value;
+				if(event.keyCode==13){
+					if(this.checkStkCode(input)){
+						this.props.onUserInput(input);
+					}else{
+						alert('The correct stock code should be 5-digit number');
+					} 
+				}
+			},
+			
+			render:function(){
+				return (
+					<div id="stockSearchDiv">
+						<input 
+							id="stockSearchBox" 
+							type="text" 
+							className="form-control" 
+							placeholder="Search by code..."
+							ref="searchCodeInput"
+							onKeyDown={this.handlePress}  
+						/>
+					</div>
+				);
+			}
+		});
+		
+		var StockSearchTable = React.createClass({
+			getInitialState: function(){
+				return {
+					searchCode:'',
+					data: null
+				};
+			},
+
+			handleUserInput: function(searchCode){
+				var self = this;
+				var searchCodes=searchCode.split(";");
+				// to handle multiple codes
+
+				$.post(this.props.source, {stock: searchCode}).done( 
+					function(result) {
+						console.log(result);
+						if (self.isMounted()) {
+							self.setState({
+							searchCode: searchCode,
+							data: result
+							});
+						}
+					}
+				);
+			},
+
+			render: function(){
+				return (
+					<div className="col-md-4 stats-info stats-info1" id="stockSearchPanel">
+						<SearchBar 
+							searchCode={this.state.searchCode}
+							onUserInput={this.handleUserInput}
+							/>
+						<div className="panel-heading">
+							<h4 className="panel-title">Search Results</h4>
+						</div>
+						<SearchPanel data={this.state.data} />
+					</div>
+				);
+			}
+
+		});		
+		
+		// End lookup
+		
+		var MarketContainer = React.createClass({
+			mixins: [ GlobalMixin ],
+			render:function(){
+				return(
+					<div  className="graphs">
+						<div className="widget_head">Notification</div>
+						<div id="notificationBoard">
+							<PollingComponent source={url_note}/>
+						</div>
+						<div className="col-md-4 widget_1_box1" id="stockPicPanel">
+							<div className="coffee">
+							<div className="coffee-top">
+								<a href="#"><img className="img-responsive" src="images/stock.jpg" alt=""/>
+								<div className="doe">
+									<h1 id="inPic">How is your stock</h1>
+								</div>
+								</a>
+							</div>
+						   </div>
+						</div>
+						<div id="container">
+							<StockSearchTable source={url_info_stk}/>
+							{/*<StockSearchTable source={this.urlHeader+"info/stock/code"}/>*/}
+						</div>
+						<div className="clearfix"></div>
+					</div>
+				);
+			}
+		
+		});
+		
+		// Change pasword panel
+		var ChangePassword = React.createClass({
+			mixins: [ GlobalMixin ],
+			getInitialState: function(){
+				return {
+					illegal:true,
+					pw_ok:false,
+					data:null,
+					value1:"",
+					value2:"",
+					value3:"",
+					pwtype:null,
+					tip:''
+				};
+			},
+			
+			handleClick1: function (event){
+				var self = this;
+				var tk = this.props.token;
+				var oPasswd = this.refs.orgPasswd.value;
+				var nPasswd = this.refs.newPasswd1.value;
+				var source;
+				if( this.state.pwtype === 'trade')
+					source = this.props.source1;
+				else
+					source = this.props.source2;
+				
+				$.post(source, {token:tk, orgPasswd:oPasswd, newPasswd:nPasswd}).done( 
+					function(result) {
+						if (self.isMounted()) {
+							self.setState({
+								illegal:true,
+								pw_ok:false,
+								data:result,
+								value1:"",
+								value2:"",
+								value3:""
+							});
+						}
+					}
+				)
+			},
+			
+			handleClick2: function (event){
+				if(this.state.pw_ok == true)
+					this.setState({
+						pwtype:this.refs.radio1.value,
+						illegal:false
+					});
+				else
+					this.setState({
+						pwtype:this.refs.radio1.value
+					});
+			},
+			
+			handleClick3: function (event){
+				if(this.state.pw_ok == true)
+					this.setState({
+						pwtype:this.refs.radio2.value,
+						illegal:false
+					});
+				else
+					this.setState({
+						pwtype:this.refs.radio2.value
+					});
+			},
+			
+			handleChange: function(){
+				var oPasswd = this.refs.orgPasswd.value;
+				var nPasswd1 = this.refs.newPasswd1.value;
+				var nPasswd2 = this.refs.newPasswd2.value;
+				var tip1 = this.checkPassword(oPasswd,'Old Password');
+				var tip2 = this.checkPassword(nPasswd1,'New Password');
+				if(tip1 !== '')
+				{	this.setState({
+						pw_ok: false,
+						illegal:true,
+						value1:this.refs.orgPasswd.value,
+						value2:this.refs.newPasswd1.value,
+						value3:this.refs.newPasswd2.value,
+						tip:tip1
+					});
+				}else if( (nPasswd1 !== nPasswd2))
+				{	this.setState({
+						pw_ok: false,
+						illegal:true,
+						value1:this.refs.orgPasswd.value,
+						value2:this.refs.newPasswd1.value,
+						value3:this.refs.newPasswd2.value,
+						tip:"New password not matched"
+					});
+				}
+				else if(tip2!=='')
+				{	
+					this.setState({
+						pw_ok: true,
+						illegal:false,
+						value1:this.refs.orgPasswd.value,
+						value2:this.refs.newPasswd1.value,
+						value3:this.refs.newPasswd2.value,
+						tip:tip2
+					});
+				}
+				else
+				{
+					this.setState({
+						pw_ok: true,
+						illegal:true,
+						value1:this.refs.orgPasswd.value,
+						value2:this.refs.newPasswd1.value,
+						value3:this.refs.newPasswd2.value,
+						tip:''
+					});
+				}
+			},
+			componentDidUpdate:function(){
+				if(this.state.data !== null)
+				{
+					//var resObj = JSON.parse(this.state.data);
+					var resObj = this.state.data;
+					if (resObj["state"] === 'ok')
+						alert("success!");
+					else
+						alert("error:"+resObj["info"]);
+					this.setState({
+						data: null,
+						illegal:true,
+						pw_ok:false
+					});
+				}
+			},
+			render: function(){
+				return (
+					<div className="graphs">
+						<div className="widget_head">Change password</div>
+						<div className="my_form">
+							<div className="form-horizontal">
+								<div className="form-group">
+									<label className="col-md-3 control-label">Old Password</label>
+									<div className="col-md-7">
+										<div className="input-group">
+											<span className="input-group-addon">
+												<i className="fa fa-key"></i>
+											</span>
+											<input 
+												type="password" 
+												className="form-control1" 
+												ref="orgPasswd"
+												name="orgPasswd"
+												value={this.state.value1}
+												placeholder="Password"
+												onChange={this.handleChange}/>
+										</div>
+									</div>
+									<p className="help-block">{this.state.tip}</p>
+								</div>
+								<div className="form-group">
+									<label className="col-md-3 control-label">New Password</label>
+									<div className="col-md-7">
+										<div className="input-group">
+											<span className="input-group-addon">
+												<i className="fa fa-key"></i>
+											</span>
+											<input 
+												type="password" 
+												className="form-control1" 
+												ref="newPasswd1"
+												name="newPasswd"
+												value={this.state.value2}
+												placeholder="Password"
+												onChange={this.handleChange}/>
+										</div>
+									</div>
+								</div>
+								<div className="form-group">
+									<label className="col-md-3 control-label">Retyped Again</label>
+									<div className="col-md-7">
+										<div className="input-group">
+											<span className="input-group-addon">
+												<i className="fa fa-key"></i>
+											</span>
+											<input 
+												type="password" 
+												className="form-control1"
+												value={this.state.value3}
+												ref="newPasswd2"
+												placeholder="Password"
+												onChange={this.handleChange}/>
+										</div>
+									</div>
+								</div>
+								<div className="row">
+										<div className="col-sm-5">
+										<form>
+											<input className="myraido" type="radio" name = "pwtype" ref="radio1"
+												value="trade" onClick={this.handleClick2}/>trade
+											<input className="myraido" type="radio" name = "pwtype" ref="radio2"
+												value="withdraw" onClick={this.handleClick3}/>withdraw
+										</form>
+										</div>
+									<div className="col-sm-offset-7">
+										<div className="mybtn">
+											<input 
+												type="button" 
+												className="mybtn btn-success btn"
+												id='largeBtn'
+												value="Submit"
+												disabled={this.state.illegal}
+												onClick={this.handleClick1}
+												/>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				);
+			}
+		});
+		// End change password
+		
+		// start trade
+		var TradeTrack = React.createClass({
+			render: function() {
+				var handleUndo = this.props.clickUndo;
+				return (
+					<tbody>
+					{this.props.list.map(
+						function(value,i){
+							return(
+								<tr key={"tr"+i}>
+									<td>{value.type  }</td>
+									<td>{value.name  }</td>
+									<td>{value.code  }</td>
+									<td>{value.amount}</td>
+									<td>{value.price }</td>
+									<td>{value.time  }</td>
+									<td>
+										<input type='button' value={value.state} disabled={value.state!=='Undo'} onClick={handleUndo.bind(null,i,value.type)}/>
+									</td>
+									<td>{value.reason}</td>
+								</tr>
+							);
+						}
+					)}
+					</tbody>
+				);
+			}
+		});
+
+		var TradePanel = React.createClass({
+			mixins: [ GlobalMixin ],
+			getInitialState:function(){
+				return{
+					ready:false,
+					stkcode:'',
+					amount:'',
+					price:'',
+					tradeType:'',
+					tip:'',
+					priceTip:'',
+					tip2:'',
+					curStk:'',
+					allTrade:this.props.lastTrade,
+					undoTip:'',
+					num:1
+				};
+			},
+
+			tradePoll: function(){
+				var urlHd = this.urlHeader;
+				var self = this;
+				this.state.allTrade.forEach(function(entry){
+					var url = url_ord_id;
+					if(entry.state==='Done'||entry.state==='Canceled'||entry.state==='Fail')
+						return;
+					$.post(url,{id:entry.id}).done(function(result){
+						//var res = JSON.parse(result);
+						var res = result;
+						var change = false;
+						if(res.state==='ok'){
+							entry.state = 'Done';
+							change = true;
+						}else if(res.state==='error'){
+							if(entry.reason!=res.info){
+								entry.reason =res.info;	
+								change = true;
+							}
+						}
+						if(self.isMounted()&&change)
+							self.setState({allTrade:self.state.allTrade});
+					})
+				});
+			},
+
+
+			componentDidMount:function(){
+				this.__timer = setInterval(this.tradePoll,5000);
+			},
+
+			componentWillUnmount:function(){
+				clearInterval(this.__timer);
+				this.props.callSave.call(null,this.state.allTrade);
+			},
+
+			stkcodeChange:function(event){
+				// todo: find out stock name
+				var fNameUrl = url_info_stk;
+				var stkcode = event.target.value;
+				if(this.checkStkCode(stkcode)){
+					$.post(fNameUrl,{code:stkcode},function(result){
+						if(this.isMounted()){
+							//var res = JSON.parse(result);
+							var res = result;
+							if(res.state=='ok'){
+								// using mean price as advice
+								var firStk = res.results[0];
+								//var meanPrice = (firStk.least_price + firStk.highest_price)/2.0;
+								var meanPrice = firStk.price;
+								var advice = 'Advised Price: ' + meanPrice;
+								this.setState({tip:firStk.stock_name,priceTip:advice,curStk:firStk});
+							}else{
+								this.setState({tip:res.info,priceTip:'',curStk:''});
+							}
+						}
+					}.bind(this))
+				}else{
+					this.setState({curStk:''});
+				}
+				this.setState({stkcode:stkcode});
+				if(this.state.ready){
+					this.setState({ready:false,tip2:''});
+				}
+			},
+
+			amountChange:function(event){
+				this.setState({amount:event.target.value});
+				if(this.state.ready){
+					this.setState({ready:false,tip2:''});
+				}
+			},
+			priceChange:function(event){
+				this.setState({price:event.target.value});
+				if(this.state.ready){
+					this.setState({ready:false,tip2:''});
+				}
+			},
+
+			clickSell:function(){
+				if(this.checkPrice(this.state.price)){
+					if(this.checkAmount(this.state.amount)){
+						// check whether have so much stock
+						if(this.state.curStk===''){
+							this.setState({tip:'Stock code error'});
+						}else{
+							var chkStkUrl = url_check_stk;
+							$.post(chkStkUrl,{token:this.props.token,code:this.state.curStk.code}).done(
+								function(result){
+									//var res = JSON.parse(result);
+									var res = result;
+									if(res.amount<this.state.amount){
+										this.setState({tip2:"Too much stock"});
+									}else{
+										// check whether invalid price
+										if(this.state.curStk.highest_price<this.state.price){
+											this.setState({priceTip:'Price too high'});
+										}else if(this.state.curStk.least_price>this.state.price){
+											this.setState({priceTip:'Price too low'});
+										}else{
+											this.setState({tradeType:'sell',ready:true,tip2:'Ready to <Sell>, click "Yes" button, please.'});
+										}
+									}
+								}.bind(this)
+							)						
+						}
+					}else{
+						this.setState({tip2:'Incorrect Amount'});
+					}
+				}else{
+					this.setState({tip2:'Incorrect Price'});
+				}
+			},
+
+			clickBuy:function(){
+				if(this.checkPrice(this.state.price)){
+					if(this.checkAmount(this.state.amount)){
+						// check whether have so much stock
+						if(this.state.curStk===''){
+							this.setState({tip:'Stock code error'});
+						}else{
+							var chkUrl = url_check_cap;
+							$.post(chkUrl,{token:this.props.token,code:this.state.curStk.code}).done(
+								function(result){
+									//var res = JSON.parse(result);
+									var res = result;
+									if(Number(res.unfrozen)<Number(this.state.amount)*Number(this.state.price)){
+										this.setState({tip2:"No enough money"});
+									}else{
+										// check whether invalid price
+										if(this.state.curStk.highest_price<this.state.price){
+											this.setState({priceTip:'Price too high'});
+										}else if(this.state.curStk.least_price>this.state.price){
+											this.setState({priceTip:'Price too low'});
+										}else{
+											this.setState({tradeType:'buy',ready:true,tip2:'Ready to <Buy>, click "Yes" button, please.'});
+										}
+									}
+								}.bind(this)
+							)						
+						}
+					}else{
+						this.setState({tip2:'Incorrect Amount'});
+					}
+				}else{
+					this.setState({tip2:'Incorrect Price'});
+				}
+			},
+
+			clickYes:function(){
+				// using 
+				//var trdUrl = this.urlHeader+'center/'+this.state.tradeType;
+				var trdUrl;
+				if(this.state.tradeType==='sell')
+					trdUrl = url_sell;
+				else trdUrl = url_buy;
+				var last = {name:this.state.curStk.name,stkcode:this.state.stkcode,amount:this.state.amount,price:this.state.price,type:this.state.tradeType};
+				$.post(trdUrl,{
+					token:this.props.token,
+					code:this.state.stkcode,
+					amount:this.state.amount,
+					price:this.state.price
+				}).done(function(result){
+					if(this.isMounted()){
+						//var res = JSON.parse(result);
+						var res = result;
+						var date = new Date();
+						if(res.state==='ok'){
+							this.state.allTrade.push({
+								name:last.name,
+								code:last.stkcode,
+								id:res.id,
+								amount:last.amount,
+								type:last.type,
+								price:last.price,
+								time:date.toLocaleString(),
+								state:'Undo'
+							});
+							this.setState({allTrade:this.state.allTrade});
+						}else{
+							this.setState({tip2:'Error when sending trade command'});
+						}
+					}
+				}.bind(this))
+				this.setState({tradeType:'',ready:false,tip2:'',stkcode:'',price:'',amount:''});
+			},
+
+			clickUndo: function(i,tradeType){
+				this.state.allTrade[i].state='Undoing';
+				this.setState({allTrade:this.state.allTrade});
+				var undoUrl;// = this.urlHeader+'center/undo/'+tradeType;
+				if(tradeType==='sell')
+					undoUrl  = url_undo_sell;
+				else undoUrl = url_undo_buy;
+				$.post(undoUrl,{token:this.props.token,id:this.state.allTrade[i].id}).done(
+					function(result){
+						//var res = JSON.parse(result);
+						var res = result;
+						if(res.state==='ok'){
+							this.state.allTrade[i].state='Canceled';
+						}else{
+							if(res.state==='error'){
+								this.state.allTrade[i].reason = res.info;
+							}else{
+								this.state.allTrade[i].reason = 'Unknown Error';
+							}
+						}
+						this.setState({allTrade:this.state.allTrade});
+				}.bind(this))
+			},
+
+			addNum:function(){
+				var total = this.state.allTrade.length===0?1:Math.floor(this.state.allTrade.length/10)+1;
+				if(this.state.num<total)
+					this.setState({num:this.state.num+1});
+			},
+			minusNum:function(){
+				var total = this.state.allTrade.length===0?1:Math.floor(this.state.allTrade.length/10)+1;
+				if(this.state.num>1)
+					this.setState({num:this.state.num-1});
+			},
+			render:function(){
+				return(
+					<div>
+						<h3>Trade</h3>
+						<div className="bs-example4" data-example-id="contextual-table">
+							<form className="form-horizontal">
+								<div className="form-group">
+									<label for="focusedinput" className="col-sm-2 control-label">Stock code</label>
+									<div className="col-sm-8">
+										<input type="text" className="form-control1" placeholder="XXXXX" value={this.state.stkcode} onChange={this.stkcodeChange}/>
+									</div>
+									<div className="col-sm-2">
+										<p className="help-block">{this.state.tip}</p>
+									</div>
+								</div>
+								<div className="form-group">
+									<label for="disabledinput" className="col-sm-2 control-label">Price</label>
+									<div className="col-sm-8">
+										<input type="text" className="form-control1" placeholder="Input" value={this.state.price} onChange={this.priceChange}/>
+									</div>
+									<div className="col-sm-2">
+										<p className="help-block">{this.state.priceTip}</p>
+									</div>
+								</div>
+								<div className="form-group">
+									<label for="disabledinput" className="col-sm-2 control-label">Amount</label>
+									<div className="col-sm-8">
+										<input type="text" className="form-control1"  placeholder="Input" value={this.state.amount} onChange={this.amountChange}/>
+									</div>
+									<div className="col-sm-2">
+										<p className="help-block" style={{color:'red'}}>{this.state.tip2}</p>
+									</div>
+								</div>
+								<div className="panel-footer">
+									<div className="row">
+										<div className="col-sm-8 col-sm-offset-2">
+											<div className="mybtn">
+												<input type="button" className="mybtn btn-success btn" value="Sell" onClick={this.clickSell}/>
+												<input type="button" className="mybtn btn-default btn" value="Yes" disabled={!this.state.ready} onClick={this.clickYes}/>
+												<input type="button" className="mybtn btn-warning btn" value="Buy" onClick={this.clickBuy}/>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div className="mailbox-content" style={{padding:'0.5em'}}>
+									<div className="mail-toolbar clearfix">
+										<div className="float-right">
+											<span className="text-muted m-r-sm">Trade List: {this.state.num} of {this.state.allTrade.length===0?1:Math.floor(this.state.allTrade.length/10)+1} </span>
+											<div className='btn-group'>
+												<a className='btn btn-default' onClick={this.minusNum}>
+													<i className='fa fa-angle-left' ></i>
+												</a>
+												<a className='btn btn-default' onClick={this.addNum}>
+													<i className='fa fa-angle-right'></i>
+												</a>
+											</div>
+										</div>
+									</div>
+									<table className='table'>
+										<thead>
+											<tr>
+												<th>Type</th>
+												<th>Stock Name</th>
+												<th>Stock Code</th>
+												<th>Amount</th>
+												<th>Price</th>
+												<th>Time</th>
+												<th>State</th>
+												<th>Reason</th>
+											</tr>
+										</thead>
+										<TradeTrack list={this.state.allTrade.slice((this.state.num-1)*10,(this.state.num)*10)} clickUndo={this.clickUndo}/>
+									</table>
+								</div>
+							</form>
+						</div>
+						<div className="clearfix"></div>
+					</div>
+				);
+			}
+		});
+		// end trade
+
+		// start home page
+
+		var HomeContainer = React.createClass({
+			render: function(){
+				return(
+					<div className='graphs'>
+					  <div className="col_1">
+						<CheckPossesion token={this.props.token}/>
+					  </div>
+					  <div className="clearfix"></div>
+					</div>
+				);
+			}
+		});
+		// end home page
+
+		// start home page
+		var Selector = React.createClass({
+			mixins: [ GlobalMixin ],
+			getInitialState:function(){
+				return{
+					storeTrade:[]
+				};
+			},
+			saveTrade:function(subData){
+				if(subData.length>this.state.storeTrade.length){
+					var len = this.sate.storeTrade.length;
+					var newArray = this.sate.storeTrade.concat(subData.slice(len));
+					this.setState({storeTrade:newArray});
+				}
+			},
+			render:function(){
+				if(this.props.tabl==='home')
+					return(<HomeContainer usrName={this.props.usrName} token={this.props.token}/>);
+				else if(this.props.tabl==='password')
+					//return(<ChangePassword token={this.props.token} source1={this.urlHeader+"stock/modify"} source2={this.urlHeader+"capital/modify"}/>);
+					return(<ChangePassword token={this.props.token} source1={url_mod_stkpw} source2={url_mod_cappw}/>);
+				else if(this.props.tabl==='trade')
+					return(<TradePanel token={this.props.token} callSave={this.saveTrade} lastTrade={this.state.storeTrade}/>);
+				else return(<MarketContainer />);
+			}
+		});
+
+		var MainFrame = React.createClass({
+			getInitialState:function(){
+				return{
+					tabl: 'home'
+				};
+			},
+			
+			clickHome:function(){
+				this.setState({tabl:'home'});
+			},
+			clickTrade:function(){
+				this.setState({tabl:'trade'});
+			},
+			clickMarket:function(){
+				this.setState({tabl:'market'});
+			},
+			clickChgPassword:function(){
+				this.setState({tabl:'password'});
+			},
+			render: function(){
+				return(
+					// BIG PAGE
+					<div id="wrapper">
+					  <nav className="top1 navbar navbar-default navbar-static-top" role="navigation" style={{'borderBottom': '0px','marginBottom':'0px'}}>
+						<div className="navbar-header">
+						  <button type="button" className="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span className="sr-only">Toggle navigation</span>
+							<span className="icon-bar"></span>
+							<span className="icon-bar"></span>
+							<span className="icon-bar"></span>
+						  </button>
+						  <p className="navbar-brand">Super Stock Client</p>
+						</div>
+						<div className="navbar-default sidebar" role="navigation">
+						  <div className="sidebar-nav navbar-collapse">
+							<ul className="nav" id="side-menu">
+							  <li>
+								<a href="#" onClick={this.clickHome}><i className="fa fa-home nav_icon"></i>Home</a>
+							  </li>
+							  <li>
+								<a href="#" onClick={this.clickTrade}><i className="fa fa-random nav_icon"></i>Trade</a>
+							  </li>
+							  <li>
+								<a href="#" onClick={this.clickMarket}><i className="fa fa-search nav_icon"></i>Stocks Market</a>
+							  </li>
+							  <li>
+								<a href="#" onClick={this.clickChgPassword}><i className="fa fa-asterisk nav_icon"></i>Change Password</a>
+							  </li>
+							  <li>
+								<a href="#" onClick={this.props.callLogout}><i className="fa fa-sign-out nav_icon"></i>Logout</a>
+							  </li>
+							</ul>
+						  </div>
+						</div>
+					  </nav>
+					  <div id="page-wrapper" style={{height:'1000px'}}>
+						<Selector tabl={this.state.tabl} usrName={this.props.usrName} token={this.props.token}/>
+					  </div>
+					</div>
+					// END BIG PAGE
+				);
+			}
+		});
+
+		// control box
+		var ContentBox = React.createClass({
+			mixins: [ GlobalMixin ],
+			getInitialState:function(){
+				return{
+					stage:'login',
+					usrName:'',
+					token:0,
+					message:''
+				};
+			},
+			signIn:function(recTkn,usrName){
+				this.setState({stage:'index',token:recTkn,usrName:usrName,message:''});
+			},
+			logout:function(){
+				if(confirm('Do you really want to logout?')===false)
+					return;
+				var self = this;
+				var url = url_logout;
+				$.post(url,{token:self.state.token}).done(
+					function(res){
+						//var resobj = JSON.parse(res);
+						var resobj = result;
+						if(self.isMounted()){
+							if(resobj.state==='ok'){
+								self.setState({stage:'login'});
+							}
+							else{
+								self.setState({message:'logout fail'});
+							}
+						}
+					}
+				)
+			},
+			render: function(){
+				if(this.state.stage==='login'){
+					return(
+						<LoginPanel signIn={this.signIn}/>
+					);
+				}else{
+					return(
+						<MainFrame usrName={this.state.usrName} token={this.state.token} callLogout={this.logout} message={this.state.message}/>
+					);
+				}
+			}
+		});
+
+		ReactDOM.render(
+			<ContentBox />,
+			document.getElementById('content')
+		);
+	</script>
+</body>
+
+</html>
